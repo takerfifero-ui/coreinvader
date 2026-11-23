@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreInvaders — Mobile Legends</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- ============ PARTICLES BACKGROUND ============ -->
+    <div id="particles-bg"></div>
+
+    <!-- ============ TOAST NOTIFICATIONS ============ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============ NAVBAR ============ -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <button type="button" class="nav-logo" onclick="showSection('inicio')">
+                <img src="https://i.postimg.cc/B6RJZjvp/coreinvaders.jpg" alt="CoreInvaders">
+                <div>
+                    <span class="nav-logo-text">COREINVADERS</span>
+                    <span class="nav-logo-sub">Mobile Legends</span>
+                </div>
+            </button>
+
+            <button type="button" class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Abrir Menú">
+                <span></span><span></span><span></span>
+            </button>
+
+            <ul class="nav-links" id="navLinks">
+                <li><button type="button" class="nav-link-btn active" data-section="inicio"
+                        onclick="showSection('inicio')">🏠 Inicio</button></li>
+                <li><button type="button" class="nav-link-btn" data-section="acerca" onclick="showSection('acerca')">ℹ️
+                        Acerca de</button></li>
+                <li><button type="button" class="nav-link-btn" data-section="noticias"
+                        onclick="showSection('noticias')">📰 Noticias</button></li>
+                <li><button type="button" class="nav-link-btn" data-section="clan" onclick="showSection('clan')">⚔️
+                        Registro al Clan</button></li>
+                <li><button type="button" class="nav-link-btn" data-section="historial"
+                        onclick="showSection('historial')">🏆 Historial Torneos</button></li>
+                <li id="navTorneo" style="display:none;">
+                    <button type="button" class="nav-link-btn" data-section="torneo" onclick="showSection('torneo')">
+                        🎮 Registro Torneo <span id="navTorneoBadge" class="badge badge-gold"
+                            style="display:none;margin-left:4px;font-size:0.7rem;">ABIERTO</span>
+                    </button>
+                </li>
+                <li><button type="button" class="nav-link-btn" data-section="chat" onclick="showSection('chat')">💬 Chat
+                        Global</button></li>
+                <li><button type="button" class="nav-admin-btn" onclick="openLoginModal()">🔐 Admin</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ============ LOGIN MODAL ============ -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <button type="button" class="modal-close" onclick="closeLoginModal()">✕</button>
+            <h2>🔐 PANEL ADMIN</h2>
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" class="form-control" id="adminUser" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" class="form-control" id="adminPass" placeholder="••••••••">
+            </div>
+            <button type="button" class="btn btn-gold" style="width:100%;margin-top:10px;" onclick="loginAdmin()">
+                ⚡ INGRESAR
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ NEWS DETAIL MODAL ============ -->
+    <div class="modal-overlay" id="newsModal">
+        <div class="modal news-modal-dialog">
+            <button type="button" class="modal-close" onclick="closeNewsModal()">✕</button>
+            <div id="newsModalContent"></div>
+        </div>
+    </div>
+
+    <!-- ============ MATCH / SALA DE PARTIDA MODAL ============ -->
+    <div class="modal-overlay" id="matchModal">
+        <div class="modal match-modal-dialog">
+            <button type="button" class="modal-close" onclick="closeMatchModal()">✕</button>
+            <div id="matchModalContent"></div>
+        </div>
+    </div>
+
+    <!-- ============ SECTION: INICIO ============ -->
+    <section id="sec-inicio">
+        <div class="hero">
+            <div class="hero-bg">
+                <img src="https://i.postimg.cc/B6RJZjvp/coreinvaders.jpg" alt="CoreInvaders Banner" id="heroBannerImg">
+            </div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 class="hero-title">COREINVADERS</h1>
+                <p class="hero-subtitle">⚔️ Mobile Legends Bang Bang ⚔️</p>
+                <p class="hero-tagline">「 Únete a la batalla. Domina el campo. Conquista la gloria. 」</p>
+                <div class="hero-cta">
+                    <button type="button" class="btn btn-primary" onclick="showSection('clan')">⚔️ Únete al
+                        Clan</button>
+                    <button type="button" class="btn btn-gold" id="heroTorneoBtn" style="display:none;"
+                        onclick="showSection('torneo')">🎮 ¡Inscribirse al Torneo!</button>
+                    <button type="button" class="btn btn-outline" onclick="showSection('historial')">🏆 Historial
+                        Torneos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DESTACADA DE TORNEO EN INICIO -->
+        <div class="section" id="sec-home-torneo" style="display:none;padding-top:20px;">
+            <h2 class="section-title">⚡ TORNEO OFICIAL DESTACADO</h2>
+            <div class="section-line"></div>
+            <div id="homeTorneoCard"></div>
+        </div>
+
+        <!-- BANNERS MULTIMEDIA EXTRA -->
+        <div class="section" id="bannersExtra" style="padding-top:10px;"></div>
+
+        <!-- ÚLTIMAS NOTICIAS -->
+        <div class="section">
+            <h2 class="section-title">📰 ÚLTIMAS NOTICIAS</h2>
+            <div class="section-line"></div>
+            <div class="news-grid" id="newsPreview"></div>
+        </div>
+    </section>
+
+    <!-- ============ SECTION: ACERCA DE ============ -->
+    <section id="sec-acerca" class="section section-hidden">
+        <h2 class="section-title">ℹ️ ACERCA DE COREINVADERS</h2>
+        <div class="section-line"></div>
+
+        <div class="card mb-20" style="max-width:800px;margin:0 auto 30px;">
+            <p style="color:var(--text-secondary);line-height:1.8;font-size:1.05rem;text-align:center;"
+                id="acercaTexto">
+                Somos CoreInvaders, una comunidad de jugadores de Mobile Legends Bang Bang. Organizamos torneos,
+                compartimos estrategias y crecemos juntos como equipo.
+            </p>
+        </div>
+
+        <div class="about-grid">
+            <div class="card about-card">
+                <span class="icon">🏆</span>
+                <h3>Torneos</h3>
+                <p>Organizamos torneos competitivos 1v1, 3v3 y 5v5 con premios para los mejores jugadores.</p>
+            </div>
+            <div class="card about-card">
+                <span class="icon">👥</span>
+                <h3>Comunidad</h3>
+                <p>Más que un clan, somos una familia de gamers que comparte la pasión por Mobile Legends.</p>
+            </div>
+            <div class="card about-card">
+                <span class="icon">📈</span>
+                <h3>Crecimiento</h3>
+                <p>Ayudamos a cada miembro a mejorar sus habilidades con prácticas y estrategias de equipo.</p>
+            </div>
+            <div class="card about-card">
+                <span class="icon">🎮</span>
+                <h3>Diversión</h3>
+                <p>Lo más importante es disfrutar cada partida. ¡La diversión está en el centro de todo!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SECTION: NOTICIAS ============ -->
+    <section id="sec-noticias" class="section section-hidden">
+        <h2 class="section-title">📰 NOTICIAS</h2>
+        <div class="section-line"></div>
+        <div class="news-grid" id="newsFull"></div>
+        <p class="text-center text-muted mt-30" id="noNewsMsg" style="display:none;">No hay noticias publicadas aún.</p>
+    </section>
+
+    <!-- ============ SECTION: REGISTRO AL CLAN ============ -->
+    <section id="sec-clan" class="section section-hidden">
+        <h2 class="section-title">⚔️ REGISTRO AL CLAN</h2>
+        <div class="section-line"></div>
+
+        <div class="clan-form">
+            <div class="card">
+                <p style="color:var(--text-secondary);text-align:center;margin-bottom:25px;">
+                    ¿Quieres ser parte de <span class="text-cyan">CoreInvaders</span>? Completa el formulario y un
+                    administrador revisará tu solicitud.
+                </p>
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" class="form-control" id="clanNombre" placeholder="Tu nombre real">
+                </div>
+                <div class="form-group">
+                    <label>Nick del Juego (In-Game Name)</label>
+                    <input type="text" class="form-control" id="clanNick" placeholder="Tu nick en Mobile Legends">
+                </div>
+                <div class="form-group">
+                    <label>ID del Juego</label>
+                    <input type="text" class="form-control" id="clanGameId" placeholder="Ej: 123456789 (1234)">
+                </div>
+                <div class="form-group">
+                    <label>Rol Principal</label>
+                    <select class="form-control" id="clanRol">
+                        <option value="">Selecciona tu rol...</option>
+                        <option value="Tank">🛡️ Tank</option>
+                        <option value="Fighter">⚔️ Fighter</option>
+                        <option value="Assassin">🗡️ Assassin</option>
+                        <option value="Mage">🔮 Mage</option>
+                        <option value="Marksman">🏹 Marksman</option>
+                        <option value="Support">💚 Support</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" style="width:100%;" onclick="registrarClan()">
+                    ⚔️ ENVIAR SOLICITUD
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SECTION: HISTORIAL DE TORNEOS ============ -->
+    <section id="sec-historial" class="section section-hidden">
+        <h2 class="section-title">🏆 HISTORIAL DE TORNEOS</h2>
+        <div class="section-line"></div>
+        <div class="history-grid" id="historialGrid"></div>
+        <p class="text-center text-muted mt-30" id="noHistoryMsg" style="display:none;">No hay torneos registrados aún.
+        </p>
+    </section>
+
+    <!-- ============ SECTION: REGISTRO A TORNEO ============ -->
+    <section id="sec-torneo" class="section section-hidden">
+        <h2 class="section-title">🎮 REGISTRO A TORNEO</h2>
+        <div class="section-line"></div>
+        <div id="torneoContent" class="registro-wrapper"></div>
+    </section>
+
+    <!-- ============ SECTION: DETALLE DE TORNEO (Participantes + Bracket) ============ -->
+    <section id="sec-torneo-detalle" class="section section-hidden">
+        <div style="margin-bottom:20px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="volverDeDetalleTorneo()">
+                ← Volver
+            </button>
+        </div>
+        <h2 class="section-title" id="detalleTorneoTitulo">🏆 DETALLE DEL TORNEO</h2>
+        <div class="section-line"></div>
+        <div id="detalleTorneoInfo"></div>
+        <div id="detalleTorneoParticipantes"></div>
+        <div id="detalleTorneoBracket"></div>
+    </section>
+
+    <!-- ============ SECTION: CHAT GLOBAL ============ -->
+    <section id="sec-chat" class="section section-hidden">
+        <h2 class="section-title">💬 CHAT GLOBAL</h2>
+        <div class="section-line"></div>
+        <div class="chat-container">
+            <div class="card" style="padding:15px 15px 5px;margin-bottom:12px;">
+                <div class="form-group" style="margin-bottom:10px;">
+                    <input type="text" class="form-control" id="chatNickname" placeholder="Tu nickname para chatear..."
+                        style="font-size:0.95rem;">
+                </div>
+            </div>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="chat-input-area">
+                <input type="text" class="form-control" id="chatInput" placeholder="Escribe tu mensaje..."
+                    onkeypress="if(event.key==='Enter')sendChat()">
+                <button type="button" class="btn btn-primary" onclick="sendChat()">📤 Enviar</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SECTION: ADMIN PANEL ============ -->
+    <section id="sec-admin" class="section section-hidden">
+        <h2 class="section-title">🔐 PANEL DE ADMINISTRACIÓN</h2>
+        <div class="section-line"></div>
+
+        <div class="admin-container">
+            <!-- Sidebar -->
+            <div class="admin-sidebar">
+                <h3>⚙️ MENÚ</h3>
+                <button type="button" class="admin-nav-item active" onclick="showAdminTab('admin-torneos', this)">🎮
+                    Torneos</button>
+                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-noticias', this)">📰
+                    Noticias</button>
+                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-banners', this)">🖼️
+                    Banners</button>
+                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-clan', this)">⚔️ Solicitudes
+                    Clan</button>
+                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-config', this)">⚙️
+                    Configuración</button>
+                <button type="button" class="admin-nav-item" style="color:var(--red-neon);" onclick="logoutAdmin()">🚪
+                    Cerrar Sesión</button>
+            </div>
+
+            <!-- Content -->
+            <div class="admin-content">
+
+                <!-- TAB: TORNEOS -->
+                <div class="admin-tab active" id="admin-torneos">
+                    <h2>🎮 Gestión de Torneos</h2>
+                    <div class="card mb-20">
+                        <h3 style="color:var(--gold);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">CREAR
+                            NUEVO TORNEO</h3>
+                        <div class="form-group">
+                            <label>Nombre del Torneo</label>
+                            <input type="text" class="form-control" id="torneoNombre"
+                                placeholder="Ej: Torneo CoreInvaders S1">
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Torneo</label>
+                            <select class="form-control" id="torneoTipo">
+                                <option value="1v1">⚔️ 1 vs 1 (Individual - Máx 8 participantes)</option>
+                                <option value="3v3">👥 3 vs 3 (Equipos de 3 - Máx 8 equipos)</option>
+                                <option value="5v5">🏟️ 5 vs 5 (Equipos de 5 - Máx 8 equipos)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estado del Registro</label>
+                            <select class="form-control" id="torneoEstado">
+                                <option value="activo">✅ Activo (Habilitar registros inmediatamente)</option>
+                                <option value="proximamente">🕐 Próximamente (Programar fecha/hora y cuenta regresiva)
+                                </option>
+                                <option value="cerrado">❌ Cerrado (Registros finalizados)</option>
+                                <option value="en curso">⚔️ En Curso (Torneo en desarrollo)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Apertura (opcional si es próximo)</label>
+                            <input type="date" class="form-control" id="torneoFecha">
+                        </div>
+                        <div class="form-group">
+                            <label>Hora de Apertura (opcional si es próximo)</label>
+                            <input type="time" class="form-control" id="torneoHora">
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="crearTorneo()">⚡ CREAR Y PUBLICAR
+                            TORNEO</button>
+                    </div>
+
+                    <h3 style="color:var(--cyan-neon);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                        TORNEOS REGISTRADOS EN BASE DE DATOS</h3>
+                    <div id="adminTorneosList"></div>
+                </div>
+
+                <!-- TAB: NOTICIAS -->
+                <div class="admin-tab" id="admin-noticias">
+                    <h2>📰 Gestión de Noticias</h2>
+                    <div class="card mb-20">
+                        <h3 style="color:var(--gold);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                            PUBLICAR NOTICIA MULTIMEDIA</h3>
+                        <div class="form-group">
+                            <label>Título</label>
+                            <input type="text" class="form-control" id="noticiaTitulo"
+                                placeholder="Título de la noticia">
+                        </div>
+                        <div class="form-group">
+                            <label>Contenido</label>
+                            <textarea class="form-control" id="noticiaContenido"
+                                placeholder="Contenido de la noticia..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>URL de Imagen (opcional)</label>
+                            <input type="text" class="form-control" id="noticiaImagen" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label>URL de Video YouTube (opcional)</label>
+                            <input type="text" class="form-control" id="noticiaVideo"
+                                placeholder="https://youtube.com/watch?v=...">
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="crearNoticia()">📰 PUBLICAR NOTICIA</button>
+                    </div>
+
+                    <h3 style="color:var(--cyan-neon);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                        NOTICIAS PUBLICADAS</h3>
+                    <div id="adminNoticiasList"></div>
+                </div>
+
+                <!-- TAB: BANNERS -->
+                <div class="admin-tab" id="admin-banners">
+                    <h2>🖼️ Gestión de Banners</h2>
+                    <div class="card mb-20">
+                        <h3 style="color:var(--gold);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                            AGREGAR BANNER</h3>
+                        <div class="form-group">
+                            <label>URL de Imagen</label>
+                            <input type="text" class="form-control" id="bannerURL" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label>Título del Banner</label>
+                            <input type="text" class="form-control" id="bannerTitulo" placeholder="Título descriptivo">
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="agregarBanner()">🖼️ AGREGAR BANNER</button>
+                    </div>
+
+                    <h3 style="color:var(--cyan-neon);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                        BANNERS ACTIVOS</h3>
+                    <div id="adminBannersList"></div>
+                </div>
+
+                <!-- TAB: SOLICITUDES CLAN -->
+                <div class="admin-tab" id="admin-clan">
+                    <h2>⚔️ Solicitudes de Registro al Clan</h2>
+                    <div id="adminClanList"></div>
+                </div>
+
+                <!-- TAB: CONFIGURACIÓN -->
+                <div class="admin-tab" id="admin-config">
+                    <h2>⚙️ Configuración General</h2>
+                    <div class="card">
+                        <div class="form-group">
+                            <label>Nombre del Sitio</label>
+                            <input type="text" class="form-control" id="configSiteName" value="CoreInvaders">
+                        </div>
+                        <div class="form-group">
+                            <label>URL del Banner Principal</label>
+                            <input type="text" class="form-control" id="configBannerURL">
+                        </div>
+                        <div class="form-group">
+                            <label>Texto "Acerca de"</label>
+                            <textarea class="form-control" id="configAcercaDe" rows="4"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="guardarConfig()">💾 GUARDAR CAMBIOS</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <div class="footer-logo">COREINVADERS</div>
+        <p>⚔️ Mobile Legends Bang Bang — Comunidad Gamer ⚔️</p>
+        <p style="margin-top:5px;">© 2026 CoreInvaders. Todos los derechos reservados.</p>
+        <div class="footer-links">
+            <button type="button" class="footer-btn" onclick="showSection('inicio')">Inicio</button>
+            <button type="button" class="footer-btn" onclick="showSection('acerca')">Acerca de</button>
+            <button type="button" class="footer-btn" onclick="showSection('chat')">Chat Global</button>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
