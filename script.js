@@ -7,7 +7,7 @@
  * -------------------------------------------------------------
  * URL de tu aplicación web de Google Apps Script:
  */
-const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzwnvkFMoOoLu4oH4dWINVZFUE9aYmuRNIrYDz36j4-no0b25d5fix0B_xY7K_kQAPdiQ/exec";
+const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbz4PPN-SJGuzwzVLr7iShBe3jZyXp1V--Ws0P-XRJStjwC2hLLmtz0z70l9-dpyxtaA/exec";
 
 // ---- ADAPTADOR / POLYFILL PARA GOOGLE.SCRIPT.RUN ----
 if (typeof window.google === 'undefined') {
