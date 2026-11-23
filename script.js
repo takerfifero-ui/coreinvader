@@ -49,15 +49,14 @@ window.google.script.run = new Proxy({}, {
                         return;
                     }
 
-                    fetch(GOOGLE_SCRIPT_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'text/plain;charset=utf-8'
-                        },
-                        body: JSON.stringify({
-                            action: funcName,
-                            args: args
-                        })
+                    // Se envía mediante GET con parámetros URL para evitar el error 411 / CORS en la redirección de Google Apps Script
+                    const params = new URLSearchParams();
+                    params.append('action', funcName);
+                    params.append('args', JSON.stringify(args));
+
+                    fetch(GOOGLE_SCRIPT_API_URL + '?' + params.toString(), {
+                        method: 'GET',
+                        mode: 'cors'
                     })
                         .then(response => {
                             if (!response.ok) {
