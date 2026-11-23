@@ -17,66 +17,72 @@ if (!window.google.script) {
     window.google.script = {};
 }
 
+function createGoogleScriptRunner() {
+    let onSuccess = () => { };
+    let onFailure = (err) => {
+        console.error('[API Error]', err);
+        if (typeof showToast === 'function') {
+            showToast(err.message || 'Error de conexión', 'error');
+        }
+    };
+
+    const runner = {
+        withSuccessHandler(fn) {
+            onSuccess = fn;
+            return runnerProxy;
+        },
+        withFailureHandler(fn) {
+            onFailure = fn;
+            return runnerProxy;
+        }
+    };
+
+    const runnerProxy = new Proxy(runner, {
+        get(target, prop) {
+            if (prop in target) {
+                return target[prop];
+            }
+            return function (...args) {
+                if (!GOOGLE_SCRIPT_API_URL || GOOGLE_SCRIPT_API_URL.includes("PEGA_AQUI")) {
+                    console.warn('[CoreInvaders] GOOGLE_SCRIPT_API_URL no está configurada para llamar a: ' + String(prop));
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append('action', String(prop));
+                params.append('args', JSON.stringify(args));
+
+                fetch(GOOGLE_SCRIPT_API_URL + '?' + params.toString(), {
+                    method: 'GET',
+                    mode: 'cors'
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data && data.error) {
+                            onFailure(new Error(data.error));
+                        } else {
+                            onSuccess(data);
+                        }
+                    })
+                    .catch(err => {
+                        onFailure(err);
+                    });
+            };
+        }
+    });
+
+    return runnerProxy;
+}
+
 window.google.script.run = new Proxy({}, {
     get(target, prop) {
-        let onSuccess = () => { };
-        let onFailure = (err) => {
-            console.error('[API Error]', err);
-            if (typeof showToast === 'function') {
-                showToast(err.message || 'Error de conexión', 'error');
-            }
-        };
-
-        const runner = {
-            withSuccessHandler(fn) {
-                onSuccess = fn;
-                return runner;
-            },
-            withFailureHandler(fn) {
-                onFailure = fn;
-                return runner;
-            }
-        };
-
-        return new Proxy(runner, {
-            get(runnerTarget, funcName) {
-                if (funcName in runnerTarget) {
-                    return runnerTarget[funcName];
-                }
-                return function (...args) {
-                    if (!GOOGLE_SCRIPT_API_URL || GOOGLE_SCRIPT_API_URL.includes("PEGA_AQUI")) {
-                        console.warn('[CoreInvaders] GOOGLE_SCRIPT_API_URL no está configurada para llamar a: ' + funcName);
-                        return;
-                    }
-
-                    // Se envía mediante GET con parámetros URL para evitar el error 411 / CORS en la redirección de Google Apps Script
-                    const params = new URLSearchParams();
-                    params.append('action', funcName);
-                    params.append('args', JSON.stringify(args));
-
-                    fetch(GOOGLE_SCRIPT_API_URL + '?' + params.toString(), {
-                        method: 'GET',
-                        mode: 'cors'
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data && data.error) {
-                                onFailure(new Error(data.error));
-                            } else {
-                                onSuccess(data);
-                            }
-                        })
-                        .catch(err => {
-                            onFailure(err);
-                        });
-                };
-            }
-        });
+        const runner = createGoogleScriptRunner();
+        return runner[prop];
     }
 });
 
