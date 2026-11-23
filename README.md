@@ -43,16 +43,10 @@ Tu proyecto está organizado para correr con el **Frontend en GitHub Pages** (al
 
 ### Paso 3: Vincular tu Frontend (`script.js`)
 
-1. Abre el archivo `script.js` en tu editor.
-2. En la línea 14 verás:
-   ```javascript
-   const GOOGLE_SCRIPT_API_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
-   ```
-3. Reemplaza el texto `"PEGA_AQUI_TU_URL_DE_APPS_SCRIPT"` con la URL que copiaste en el Paso 2:
-   ```javascript
-   const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycb.../exec";
-   ```
-4. Guarda el archivo.
+Tu archivo `script.js` ya quedó enlazado a tu Google Sheet (`1LK2p4mbVwyKordcH3REhMtPWdtioah2jujVi5jafqwU`) con tu URL pública:
+```javascript
+const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbz4PPN-SJGuzwzVLr7iShBe3jZyXp1V--Ws0P-XRJStjwC2hLLmtz0z70l9-dpyxtaA/exec";
+```
 
 ---
 
