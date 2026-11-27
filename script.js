@@ -92,6 +92,7 @@ window.google.script.run = new Proxy({}, {
 
 let isAdmin = false;
 let adminInfo = null;
+let adminRol = 'admin'; // 'admin' | 'moderador'
 let currentSection = 'inicio';
 let previousSection = 'historial';
 let countdownIntervals = [];
@@ -114,6 +115,20 @@ function initApp() {
             else navbar.classList.remove('scrolled');
         }
     });
+
+    // Scroll reveal animations
+    if ('IntersectionObserver' in window) {
+        const revealObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    } else {
+        document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+    }
 
     // Carga inicial completa
     loadInitialData();
@@ -228,6 +243,27 @@ function loadInitialData() {
     google.script.run
         .withSuccessHandler(config => {
             if (!config) return;
+            if (config.siteName) {
+                document.title = config.siteName + ' — Mobile Legends Bang Bang';
+                const heroTitle = document.getElementById('heroTitle');
+                if (heroTitle) heroTitle.textContent = config.siteName.toUpperCase();
+                const footerLogo = document.getElementById('footerLogoText');
+                if (footerLogo) footerLogo.textContent = config.siteName.toUpperCase();
+            }
+            if (config.siteSubtitle) {
+                const sub = document.getElementById('heroSubtitle');
+                if (sub) sub.textContent = config.siteSubtitle;
+            }
+            if (config.heroTagline) {
+                const tag = document.getElementById('heroTagline');
+                if (tag) tag.textContent = config.heroTagline;
+            }
+            if (config.logoURL) {
+                const emblem = document.getElementById('heroEmblemImg');
+                if (emblem) emblem.src = config.logoURL;
+                const navLogo = document.getElementById('navLogoImg');
+                if (navLogo) navLogo.src = config.logoURL;
+            }
             if (config.bannerURL) {
                 const img = document.getElementById('heroBannerImg');
                 if (img) img.src = config.bannerURL;
@@ -235,6 +271,10 @@ function loadInitialData() {
             if (config.acercaDe) {
                 const txt = document.getElementById('acercaTexto');
                 if (txt) txt.textContent = config.acercaDe;
+            }
+            if (config.footerText) {
+                const fDesc = document.getElementById('footerDescText');
+                if (fDesc) fDesc.textContent = config.footerText;
             }
         })
         .withFailureHandler(err => console.warn('Config warning:', err))
@@ -665,6 +705,10 @@ function renderTorneoForm(torneo) {
           <label>📱 Número de Teléfono / WhatsApp de Contacto</label>
           <input type="tel" class="form-control" id="reg-tel-${torneo.id}" placeholder="Ej: +51 987654321 (con WhatsApp activo)">
         </div>
+        <div class="form-group">
+          <label>📧 Correo Electrónico <span style="color:var(--gold);">(para recibir notificaciones del torneo)</span></label>
+          <input type="email" class="form-control email-field" id="reg-email-${torneo.id}" placeholder="tucorreo@gmail.com">
+        </div>
         <button type="button" class="btn btn-gold" style="width:100%;font-size:1.05rem;" onclick="submitRegistro1v1('${torneo.id}')">
           ⚡ COMPLETAR REGISTRO INDIVIDUAL (1 vs 1)
         </button>
@@ -705,6 +749,10 @@ function renderTorneoForm(torneo) {
         <label>📱 Número de Teléfono / WhatsApp de Contacto (Líder del Equipo)</label>
         <input type="tel" class="form-control" id="reg-tel-${torneo.id}" placeholder="Ej: +51 987654321 (con WhatsApp para coordinar partidas)">
       </div>
+      <div class="form-group">
+        <label>📧 Correo Electrónico del Líder <span style="color:var(--gold);">(para recibir notificaciones del torneo)</span></label>
+        <input type="email" class="form-control email-field" id="reg-email-${torneo.id}" placeholder="tucorreo@gmail.com">
+      </div>
       ${membersHtml}
       <button type="button" class="btn btn-gold" style="width:100%;font-size:1.05rem;" onclick="submitRegistroTeam('${torneo.id}', '${tipo}')">
         ⚡ REGISTRAR EQUIPO (${tipo})
@@ -730,13 +778,16 @@ function submitRegistro1v1(torneoId) {
         return;
     }
 
+    const emailEl = document.getElementById(`reg-email-${torneoId}`);
+    const email = emailEl ? emailEl.value.trim() : '';
+
     showToast('Validando registro y cupo...', 'info');
 
-    const lider = { nombre, nick, gameId, telefono };
+    const lider = { nombre, nick, gameId, telefono, email };
     google.script.run
         .withSuccessHandler(r => {
             if (r && r.success) {
-                showToast(`¡Registro exitoso! Cupos restantes: ${r.cuposRestantes}`, 'success');
+                showToast(`¡Registro exitoso! Cupos restantes: ${r.cuposRestantes}${email ? ' — Revisa tu correo ✉️' : ''}`, 'success');
                 loadTorneoRegistro();
                 loadHistorial();
             } else {
@@ -744,7 +795,7 @@ function submitRegistro1v1(torneoId) {
             }
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
-        .registrarEnTorneo(torneoId, '', '1v1', lider, [lider], telefono);
+        .registrarEnTorneo(torneoId, '', '1v1', lider, [lider], telefono, email);
 }
 
 function submitRegistroTeam(torneoId, tipo) {
@@ -799,10 +850,14 @@ function submitRegistroTeam(torneoId, tipo) {
     const lider = miembros[0];
     lider.telefono = telefono;
 
+    const emailEl = document.getElementById(`reg-email-${torneoId}`);
+    const email = emailEl ? emailEl.value.trim() : '';
+    if (email) lider.email = email;
+
     google.script.run
         .withSuccessHandler(r => {
             if (r && r.success) {
-                showToast(`¡Equipo ${teamName} registrado con éxito! Cupos restantes: ${r.cuposRestantes}`, 'success');
+                showToast(`¡Equipo ${teamName} registrado con éxito! Cupos restantes: ${r.cuposRestantes}${email ? ' — Revisa tu correo ✉️' : ''}`, 'success');
                 loadTorneoRegistro();
                 loadHistorial();
             } else {
@@ -810,7 +865,7 @@ function submitRegistroTeam(torneoId, tipo) {
             }
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
-        .registrarEnTorneo(torneoId, teamName, tipo, lider, miembros, telefono);
+        .registrarEnTorneo(torneoId, teamName, tipo, lider, miembros, telefono, email);
 }
 
 // ---- CUENTA REGRESIVA UNIVERSAL Y SEGURA ----
@@ -951,10 +1006,12 @@ function loginAdmin() {
         .withSuccessHandler(r => {
             if (r && r.success) {
                 isAdmin = true;
+                adminRol = r.rol || 'admin';
                 adminInfo = r;
                 closeLoginModal();
-                showToast(`¡Bienvenido Administrador ${r.nombre}!`, 'success');
+                showToast(`¡Bienvenido ${adminRol === 'moderador' ? 'Moderador' : 'Administrador'} ${r.nombre}!`, 'success');
                 showSection('admin');
+                _applyRolUI();
                 loadAdminData();
             } else {
                 showToast((r && r.message) || 'Usuario o contraseña incorrectos', 'error');
@@ -967,6 +1024,7 @@ function loginAdmin() {
 function logoutAdmin() {
     isAdmin = false;
     adminInfo = null;
+    adminRol = 'admin';
     showToast('Has cerrado sesión', 'info');
     showSection('inicio');
 }
@@ -983,11 +1041,27 @@ function showAdminTab(tabId, btn) {
     else if (tabId === 'admin-noticias') loadAdminNoticias();
     else if (tabId === 'admin-banners') loadAdminBanners();
     else if (tabId === 'admin-clan') loadAdminClan();
+    else if (tabId === 'admin-moderadores') loadAdminModeradores();
     else if (tabId === 'admin-config') loadAdminConfig();
 }
 
 function loadAdminData() {
     loadAdminTorneos();
+}
+
+function _applyRolUI() {
+    // Badge de usuario
+    const badge = document.getElementById('adminUserBadge');
+    if (badge && adminInfo) {
+        const rolLabel = adminRol === 'moderador' ? 'Moderador' : 'Admin';
+        const rolClass = adminRol === 'moderador' ? 'badge-role-mod' : 'badge-role-admin';
+        badge.innerHTML = `<span style="font-size:1.2rem;">👤</span><span style="color:var(--text-primary);font-weight:700;">${escapeHtml(adminInfo.nombre)}</span><span class="badge-role ${rolClass}">${rolLabel}</span>`;
+    }
+    // Ocultar items solo-admin para moderadores
+    document.querySelectorAll('.admin-nav-item[data-role="admin-only"]').forEach(el => {
+        if (adminRol === 'moderador') el.classList.add('hidden-mod');
+        else el.classList.remove('hidden-mod');
+    });
 }
 
 // ---- ADMIN: GESTIÓN DE TORNEOS ----
@@ -1012,8 +1086,6 @@ function crearTorneo() {
                 document.getElementById('torneoNombre').value = '';
                 document.getElementById('torneoFecha').value = '';
                 document.getElementById('torneoHora').value = '';
-
-                // Actualizar vistas inmediatamente
                 loadAdminTorneos();
                 loadInitialData();
                 loadHistorial();
@@ -1024,6 +1096,70 @@ function crearTorneo() {
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
         .crearTorneo(nombre, tipo, estado, fecha, hora);
+}
+
+function abrirEditarTorneo(id, nombre, tipo, estado, fechaApertura, horaApertura) {
+    const content = document.getElementById('editModalContent');
+    if (!content) return;
+    content.innerHTML = `
+        <h2 style="font-family:'Orbitron';color:var(--gold);font-size:1rem;margin-bottom:16px;">✏️ EDITAR TORNEO</h2>
+        <div class="form-group">
+            <label>Nombre del Torneo</label>
+            <input type="text" class="form-control" id="editTorneoNombre" value="${escapeHtml(nombre)}">
+        </div>
+        <div class="form-group">
+            <label>Tipo</label>
+            <select class="form-control" id="editTorneoTipo">
+                <option value="1v1" ${tipo==='1v1'?'selected':''}>⚔️ 1 vs 1</option>
+                <option value="3v3" ${tipo==='3v3'?'selected':''}>👥 3 vs 3</option>
+                <option value="5v5" ${tipo==='5v5'?'selected':''}>🏟️ 5 vs 5</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Estado</label>
+            <select class="form-control" id="editTorneoEstado">
+                <option value="activo" ${estado==='activo'?'selected':''}>✅ Activo</option>
+                <option value="proximamente" ${estado==='proximamente'?'selected':''}>🕐 Próximamente</option>
+                <option value="cerrado" ${estado==='cerrado'?'selected':''}>❌ Cerrado</option>
+                <option value="en curso" ${estado==='en curso'?'selected':''}>⚔️ En Curso</option>
+                <option value="finalizado" ${estado==='finalizado'?'selected':''}>🏆 Finalizado</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Fecha Apertura</label>
+            <input type="date" class="form-control" id="editTorneoFecha" value="${escapeHtml(fechaApertura||'')}">
+        </div>
+        <div class="form-group">
+            <label>Hora Apertura</label>
+            <input type="time" class="form-control" id="editTorneoHora" value="${escapeHtml(horaApertura||'')}">
+        </div>
+        <button type="button" class="btn btn-gold" style="width:100%;margin-top:8px;" onclick="confirmarEditarTorneo('${id}')">
+            💾 GUARDAR CAMBIOS
+        </button>
+    `;
+    openEditModal();
+}
+
+function confirmarEditarTorneo(id) {
+    const nombre = document.getElementById('editTorneoNombre').value.trim();
+    const tipo = document.getElementById('editTorneoTipo').value;
+    const estado = document.getElementById('editTorneoEstado').value;
+    const fecha = document.getElementById('editTorneoFecha').value;
+    const hora = document.getElementById('editTorneoHora').value;
+    if (!nombre) { showToast('El nombre no puede estar vacío', 'error'); return; }
+    showToast('Guardando cambios...', 'info');
+    google.script.run
+        .withSuccessHandler(r => {
+            if (r && r.success) {
+                showToast('¡Torneo actualizado!', 'success');
+                closeEditModal();
+                loadAdminTorneos(); loadInitialData(); loadHistorial();
+            } else {
+                showToast((r && r.message) || 'Error al editar', 'error');
+            }
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .editarTorneo(id, nombre, tipo, estado, fecha, hora);
 }
 
 function cambiarEstado(id, nuevoEstado) {
@@ -1072,6 +1208,7 @@ function loadAdminTorneos() {
                   <td>
                     <div style="display:flex;gap:4px;flex-wrap:wrap;">
                       <button type="button" class="btn btn-sm btn-outline" title="Ver Detalle" onclick="openTorneoDetalle('${t.id}')">👁️ Detalle</button>
+                      <button type="button" class="btn btn-sm" style="background:rgba(255,171,0,0.15);border:1px solid var(--gold);color:var(--gold);" onclick="abrirEditarTorneo('${t.id}','${escapeHtml(t.nombre)}','${t.tipo}','${t.estado}','${t.fechaApertura||''}','${t.horaApertura||''}')">✏️ Editar</button>
                       ${t.estado !== 'activo' && t.estado !== 'en curso' && t.estado !== 'finalizado' ? `<button type="button" class="btn btn-sm" style="background:#00e676;color:#000;font-weight:700;" onclick="cambiarEstado('${t.id}', 'activo')">✅ Activar</button>` : ''}
                       ${t.estado !== 'proximamente' && t.estado !== 'en curso' && t.estado !== 'finalizado' ? `<button type="button" class="btn btn-sm" style="background:#ffab00;color:#000;font-weight:700;" onclick="cambiarEstado('${t.id}', 'proximamente')">🕐 Próximo</button>` : ''}
                       ${t.estado === 'activo' ? `<button type="button" class="btn btn-sm" style="background:#555;color:#fff;" onclick="cambiarEstado('${t.id}', 'cerrado')">🔒 Cerrar</button>` : ''}
@@ -1184,12 +1321,15 @@ function loadAdminNoticias() {
             }
             container.innerHTML = noticias.map(n => `
         <div class="card mb-20" style="border-left:3px solid var(--cyan-neon);padding:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+            <div style="flex:1;">
               <strong class="text-cyan">${escapeHtml(n.titulo)}</strong>
               <div class="text-muted" style="font-size:0.8rem;">📅 ${n.fecha || ''}</div>
             </div>
-            <button type="button" class="btn btn-sm btn-danger" onclick="eliminarNoticia('${n.id}')">🗑️</button>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button type="button" class="btn btn-sm btn-outline" onclick="abrirEditarNoticia('${n.id}','${escapeHtml(n.titulo).replace(/'/g,"\\'")}','${escapeHtml(n.contenido).replace(/'/g,"\\'")}','${escapeHtml(n.imagenURL||'')}','${escapeHtml(n.videoURL||'')}')">✏️</button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="eliminarNoticia('${n.id}')">🗑️</button>
+            </div>
           </div>
           <p class="text-muted mt-20" style="font-size:0.88rem;">${escapeHtml(n.contenido).substring(0, 140)}...</p>
         </div>
@@ -1211,6 +1351,55 @@ function eliminarNoticia(id) {
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
         .eliminarNoticia(id);
+}
+
+function abrirEditarNoticia(id, titulo, contenido, imagenURL, videoURL) {
+    const content = document.getElementById('editModalContent');
+    if (!content) return;
+    content.innerHTML = `
+        <h2 style="font-family:'Orbitron';color:var(--gold);font-size:1rem;margin-bottom:16px;">✏️ EDITAR NOTICIA</h2>
+        <div class="form-group">
+            <label>Título</label>
+            <input type="text" class="form-control" id="editNoticiaTitulo" value="${titulo}">
+        </div>
+        <div class="form-group">
+            <label>Contenido</label>
+            <textarea class="form-control" id="editNoticiaContenido" rows="5">${contenido}</textarea>
+        </div>
+        <div class="form-group">
+            <label>URL Imagen (opcional)</label>
+            <input type="text" class="form-control" id="editNoticiaImagen" value="${imagenURL}">
+        </div>
+        <div class="form-group">
+            <label>URL Video YouTube (opcional)</label>
+            <input type="text" class="form-control" id="editNoticiaVideo" value="${videoURL}">
+        </div>
+        <button type="button" class="btn btn-gold" style="width:100%;margin-top:8px;" onclick="confirmarEditarNoticia('${id}')">
+            💾 GUARDAR CAMBIOS
+        </button>
+    `;
+    openEditModal();
+}
+
+function confirmarEditarNoticia(id) {
+    const titulo = document.getElementById('editNoticiaTitulo').value.trim();
+    const contenido = document.getElementById('editNoticiaContenido').value.trim();
+    const imagenURL = document.getElementById('editNoticiaImagen').value.trim();
+    const videoURL = document.getElementById('editNoticiaVideo').value.trim();
+    if (!titulo) { showToast('El título no puede estar vacío', 'error'); return; }
+    showToast('Guardando noticia...', 'info');
+    google.script.run
+        .withSuccessHandler(r => {
+            if (r && r.success) {
+                showToast('¡Noticia actualizada!', 'success');
+                closeEditModal();
+                loadAdminNoticias(); loadInitialData();
+            } else {
+                showToast((r && r.message) || 'Error al editar', 'error');
+            }
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .editarNoticia(id, titulo, contenido, imagenURL, videoURL);
 }
 
 // ---- ADMIN BANNERS ----
@@ -1329,12 +1518,19 @@ function loadAdminConfig() {
     google.script.run
         .withSuccessHandler(config => {
             if (!config) return;
-            const sn = document.getElementById('configSiteName');
-            const bu = document.getElementById('configBannerURL');
-            const ad = document.getElementById('configAcercaDe');
-            if (sn) sn.value = config.siteName || 'CoreInvaders';
-            if (bu) bu.value = config.bannerURL || '';
-            if (ad) ad.value = config.acercaDe || '';
+            const fields = {
+                'configSiteName': config.siteName || 'CoreInvaders',
+                'configSiteSubtitle': config.siteSubtitle || '',
+                'configHeroTagline': config.heroTagline || '',
+                'configLogoURL': config.logoURL || '',
+                'configBannerURL': config.bannerURL || '',
+                'configAcercaDe': config.acercaDe || '',
+                'configFooterText': config.footerText || ''
+            };
+            Object.entries(fields).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            });
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
         .getAllConfig();
@@ -1345,18 +1541,127 @@ function guardarConfig() {
     const bannerURL = document.getElementById('configBannerURL').value.trim();
     const acercaDe = document.getElementById('configAcercaDe').value.trim();
 
+    // Opcionales nuevos
+    const siteSubtitle = document.getElementById('configSiteSubtitle') ? document.getElementById('configSiteSubtitle').value.trim() : null;
+    const heroTagline = document.getElementById('configHeroTagline') ? document.getElementById('configHeroTagline').value.trim() : null;
+    const logoURL = document.getElementById('configLogoURL') ? document.getElementById('configLogoURL').value.trim() : null;
+    const footerText = document.getElementById('configFooterText') ? document.getElementById('configFooterText').value.trim() : null;
+
+    const configs = [
+        { key: 'siteName', value: siteName },
+        { key: 'bannerURL', value: bannerURL },
+        { key: 'acercaDe', value: acercaDe }
+    ];
+    if (siteSubtitle !== null) configs.push({ key: 'siteSubtitle', value: siteSubtitle });
+    if (heroTagline !== null) configs.push({ key: 'heroTagline', value: heroTagline });
+    if (logoURL !== null) configs.push({ key: 'logoURL', value: logoURL });
+    if (footerText !== null) configs.push({ key: 'footerText', value: footerText });
+
     let saved = 0;
     function checkDone() {
         saved++;
-        if (saved >= 3) {
+        if (saved >= configs.length) {
             showToast('Configuración guardada correctamente', 'success');
             loadInitialData();
         }
     }
 
-    google.script.run.withSuccessHandler(checkDone).setConfig('siteName', siteName);
-    google.script.run.withSuccessHandler(checkDone).setConfig('bannerURL', bannerURL);
-    google.script.run.withSuccessHandler(checkDone).setConfig('acercaDe', acercaDe);
+    configs.forEach(c => {
+        google.script.run.withSuccessHandler(checkDone).setConfig(c.key, c.value);
+    });
+}
+
+// ---- MODAL DE EDICIÓN GENÉRICO ----
+function openEditModal() {
+    const m = document.getElementById('editModal');
+    if (m) m.classList.add('active');
+}
+
+function closeEditModal() {
+    const m = document.getElementById('editModal');
+    if (m) m.classList.remove('active');
+}
+
+// ---- ADMIN: MODERADORES ----
+function loadAdminModeradores() {
+    google.script.run
+        .withSuccessHandler(users => {
+            const container = document.getElementById('adminModeradoresList');
+            if (!container) return;
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p class="text-muted">No hay usuarios registrados.</p>';
+                return;
+            }
+            container.innerHTML = `
+        <table class="admin-table">
+          <thead>
+            <tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Registrado</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            ${users.map(u => {
+                const rolBadge = u.rol === 'admin'
+                    ? '<span class="badge-role badge-role-admin">Admin</span>'
+                    : '<span class="badge-role badge-role-mod">Moderador</span>';
+                const canDelete = u.email !== 'admin';
+                return `
+              <tr>
+                <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(u.email)}</td>
+                <td>${escapeHtml(u.nombre)}</td>
+                <td>${rolBadge}</td>
+                <td style="font-size:0.8rem;">${u.fechaRegistro || '-'}</td>
+                <td>
+                  ${canDelete ? `<button type="button" class="btn btn-sm btn-danger" onclick="eliminarUsuarioAdmin('${escapeHtml(u.email)}')">🗑️ Eliminar</button>` : '<span class="text-muted" style="font-size:0.8rem;">Principal</span>'}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .getUsuariosAdmin();
+}
+
+function crearUsuarioModerador() {
+    const email = document.getElementById('modEmail').value.trim();
+    const nombre = document.getElementById('modNombre').value.trim();
+    const password = document.getElementById('modPassword').value.trim();
+    const rol = document.getElementById('modRol').value;
+
+    if (!email || !nombre || !password) {
+        showToast('Completa todos los campos', 'error');
+        return;
+    }
+
+    showToast('Creando usuario...', 'info');
+    google.script.run
+        .withSuccessHandler(r => {
+            if (r && r.success) {
+                showToast(`¡Usuario "${nombre}" creado como ${rol}!`, 'success');
+                document.getElementById('modEmail').value = '';
+                document.getElementById('modNombre').value = '';
+                document.getElementById('modPassword').value = '';
+                loadAdminModeradores();
+            } else {
+                showToast((r && r.message) || 'Error al crear usuario', 'error');
+            }
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .crearUsuarioModerador(email, nombre, password, rol);
+}
+
+function eliminarUsuarioAdmin(email) {
+    if (!confirm(`¿Eliminar el usuario "${email}"?`)) return;
+    google.script.run
+        .withSuccessHandler(r => {
+            if (r && r.success) {
+                showToast('Usuario eliminado', 'success');
+                loadAdminModeradores();
+            } else {
+                showToast((r && r.message) || 'Error al eliminar', 'error');
+            }
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .eliminarUsuarioAdmin(email);
 }
 
 // ---- UTILIDAD ESCAPE HTML ----
@@ -1647,6 +1952,7 @@ function _renderMatchCard(torneoId, match, torneo) {
                 📸 Captura
             </a>
         ` : '';
+    const horaBadge = match.horaPartido ? `<div class="bracket-hora-badge">🕒 ${escapeHtml(match.horaPartido)}</div>` : '';
 
     return `
         <div class="bracket-match-node" onclick="openMatchModal('${torneoId}', '${escapeHtml(match.ronda)}', ${match.partido})">
@@ -1657,7 +1963,7 @@ function _renderMatchCard(torneoId, match, torneo) {
                 </div>
                 ${evidenceBadge}
             </div>
-            
+            ${horaBadge}
             <div class="bracket-team-row ${e1Class}">
                 <span class="team-label">${match.equipo1 === 'BYE' ? '<span class="text-muted">BYE</span>' : escapeHtml(match.equipo1)}</span>
                 ${e1Winner ? '🏆' : ''}
@@ -1771,6 +2077,22 @@ function openMatchModal(torneoId, ronda, partido) {
                         🖼️ Abrir Captura de Pantalla
                     </a>
                 </div>
+            </div>`;
+    }
+
+    // PANEL DE ADMINISTRADOR / MODERADOR: ASIGNAR HORA
+    if (isAdmin && isReady) {
+        const horaActual = match.horaPartido || '';
+        html += `
+            <div class="hora-assignment-panel">
+                <label>🕒 ASIGNAR / EDITAR HORA DEL PARTIDO</label>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <input type="datetime-local" class="form-control" id="modalHoraInput" value="${escapeHtml(horaActual)}" style="flex:1;min-width:200px;">
+                    <button type="button" class="btn btn-sm btn-gold" onclick="submitAsignarHora('${torneoId}', '${escapeHtml(match.ronda)}', ${match.partido})">
+                        📨 Asignar y Notificar
+                    </button>
+                </div>
+                ${horaActual ? `<div style="margin-top:6px;font-size:0.8rem;color:var(--gold);">⏰ Hora actual: <strong>${escapeHtml(horaActual)}</strong></div>` : ''}
             </div>`;
     }
 
@@ -1909,7 +2231,7 @@ function submitMatchResultFromModal(torneoId, ronda, partido) {
 }
 
 function realizarSorteo(torneoId) {
-    if (!confirm('¿Realizar el sorteo? Esto cerrará las inscripciones y generará el fixture ramificado con sus salas de partida.')) return;
+    if (!confirm('¿Realizar el sorteo? Esto cerrará las inscripciones y generará el fixture ramificado con sus salas de partida. Los participantes con correo recibirán una notificación.')) return;
     showToast('Realizando sorteo de enfrentamientos...', 'info');
 
     google.script.run
@@ -1940,4 +2262,27 @@ function eliminarFixtureAdmin(torneoId) {
         })
         .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
         .eliminarFixture(torneoId);
+}
+
+// ---- ASIGNAR HORA DE PARTIDO ----
+function submitAsignarHora(torneoId, ronda, partido) {
+    const horaInput = document.getElementById('modalHoraInput');
+    if (!horaInput || !horaInput.value) {
+        showToast('Selecciona una fecha y hora para el partido', 'error');
+        return;
+    }
+    const hora = horaInput.value;
+    showToast('Asignando hora y notificando jugadores...', 'info');
+    google.script.run
+        .withSuccessHandler(r => {
+            if (r && r.success) {
+                showToast('¡Hora asignada y notificación enviada por correo!', 'success');
+                closeMatchModal();
+                _fetchAndRenderTorneoDetalle(torneoId);
+            } else {
+                showToast((r && r.message) || 'Error al asignar hora', 'error');
+            }
+        })
+        .withFailureHandler(e => showToast('Error: ' + e.message, 'error'))
+        .asignarHoraPartido(torneoId, ronda, partido, hora, true);
 }
