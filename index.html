@@ -20,10 +20,10 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <button type="button" class="nav-logo" onclick="showSection('inicio')">
-                <img src="https://i.postimg.cc/VLtZNqqM/Emblema-BMF-Core-Invader-electrico.png" alt="CoreInvaders">
+                <img id="navLogoImg" src="https://i.postimg.cc/VLtZNqqM/Emblema-BMF-Core-Invader-electrico.png" alt="CoreInvaders">
                 <div>
-                    <span class="nav-logo-text">COREINVADER</span>
-                    <span class="nav-logo-sub">Mobile Legends</span>
+                    <span class="nav-logo-text" id="navLogoText">COREINVADER</span>
+                    <span class="nav-logo-sub" id="navLogoSub">Mobile Legends</span>
                 </div>
             </button>
 
@@ -59,18 +59,27 @@
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
             <button type="button" class="modal-close" onclick="closeLoginModal()">✕</button>
-            <h2>🔐 PANEL ADMIN</h2>
+            <h2>🔐 PANEL ADMIN / MODERADOR</h2>
             <div class="form-group">
                 <label>Usuario</label>
-                <input type="text" class="form-control" id="adminUser" placeholder="admin">
+                <input type="text" class="form-control" id="adminUser" placeholder="admin o moderador">
             </div>
             <div class="form-group">
                 <label>Contraseña</label>
-                <input type="password" class="form-control" id="adminPass" placeholder="••••••••">
+                <input type="password" class="form-control" id="adminPass" placeholder="••••••••"
+                    onkeypress="if(event.key==='Enter')loginAdmin()">
             </div>
             <button type="button" class="btn btn-gold" style="width:100%;margin-top:10px;" onclick="loginAdmin()">
                 ⚡ INGRESAR
             </button>
+        </div>
+    </div>
+
+    <!-- ============ EDIT MODAL (TORNEOS / NOTICIAS) ============ -->
+    <div class="modal-overlay" id="editModal" onclick="if(event.target===this) closeEditModal()">
+        <div class="modal" style="max-width:560px;">
+            <button type="button" class="modal-close" onclick="closeEditModal()">✕</button>
+            <div id="editModalContent"></div>
         </div>
     </div>
 
@@ -97,10 +106,14 @@
                 <img src="https://i.postimg.cc/B6RJZjvp/coreinvaders.jpg" alt="CoreInvaders Banner" id="heroBannerImg">
             </div>
             <div class="hero-overlay"></div>
+            <div class="hero-cyber-grid"></div>
             <div class="hero-content">
-                <h1 class="hero-title">COREINVADERS</h1>
-                <p class="hero-subtitle">⚔️ Mobile Legends Bang Bang ⚔️</p>
-                <p class="hero-tagline">「 Únete a la batalla. Domina el campo. Conquista la gloria. 」</p>
+                <div class="hero-emblem-wrap">
+                    <img id="heroEmblemImg" src="https://i.postimg.cc/9QRV9PhQ/Emblema-futurista-Core-Invader.png" alt="CoreInvaders Emblem" class="hero-emblem">
+                </div>
+                <h1 class="hero-title" id="heroTitle">COREINVADERS</h1>
+                <p class="hero-subtitle" id="heroSubtitle">⚔️ Mobile Legends Bang Bang ⚔️</p>
+                <p class="hero-tagline" id="heroTagline">「 Únete a la batalla. Domina el campo. Conquista la gloria. 」</p>
                 <div class="hero-cta">
                     <button type="button" class="btn btn-primary" onclick="showSection('clan')">⚔️ Únete al
                         Clan</button>
@@ -144,22 +157,22 @@
         </div>
 
         <div class="about-grid">
-            <div class="card about-card">
+            <div class="card about-card reveal">
                 <span class="icon">🏆</span>
                 <h3>Torneos</h3>
                 <p>Organizamos torneos competitivos 1v1, 3v3 y 5v5 con premios para los mejores jugadores.</p>
             </div>
-            <div class="card about-card">
+            <div class="card about-card reveal">
                 <span class="icon">👥</span>
                 <h3>Comunidad</h3>
                 <p>Más que un clan, somos una familia de gamers que comparte la pasión por Mobile Legends.</p>
             </div>
-            <div class="card about-card">
+            <div class="card about-card reveal">
                 <span class="icon">📈</span>
                 <h3>Crecimiento</h3>
                 <p>Ayudamos a cada miembro a mejorar sus habilidades con prácticas y estrategias de equipo.</p>
             </div>
-            <div class="card about-card">
+            <div class="card about-card reveal">
                 <span class="icon">🎮</span>
                 <h3>Diversión</h3>
                 <p>Lo más importante es disfrutar cada partida. ¡La diversión está en el centro de todo!</p>
@@ -276,15 +289,18 @@
             <!-- Sidebar -->
             <div class="admin-sidebar">
                 <h3>⚙️ MENÚ</h3>
+                <div id="adminUserBadge" class="admin-user-badge"></div>
                 <button type="button" class="admin-nav-item active" onclick="showAdminTab('admin-torneos', this)">🎮
                     Torneos</button>
                 <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-noticias', this)">📰
                     Noticias</button>
-                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-banners', this)">🖼️
+                <button type="button" class="admin-nav-item" data-role="admin-only" onclick="showAdminTab('admin-banners', this)">🖼️
                     Banners</button>
-                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-clan', this)">⚔️ Solicitudes
+                <button type="button" class="admin-nav-item" data-role="admin-only" onclick="showAdminTab('admin-clan', this)">⚔️ Solicitudes
                     Clan</button>
-                <button type="button" class="admin-nav-item" onclick="showAdminTab('admin-config', this)">⚙️
+                <button type="button" class="admin-nav-item" data-role="admin-only" onclick="showAdminTab('admin-moderadores', this)">👥
+                    Moderadores</button>
+                <button type="button" class="admin-nav-item" data-role="admin-only" onclick="showAdminTab('admin-config', this)">⚙️
                     Configuración</button>
                 <button type="button" class="admin-nav-item" style="color:var(--red-neon);" onclick="logoutAdmin()">🚪
                     Cerrar Sesión</button>
@@ -400,13 +416,62 @@
                     <div id="adminClanList"></div>
                 </div>
 
+                <!-- TAB: MODERADORES -->
+                <div class="admin-tab" id="admin-moderadores">
+                    <h2>👥 Gestión de Moderadores y Usuarios</h2>
+                    <div class="card mb-20">
+                        <h3 style="color:var(--gold);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                            CREAR NUEVO USUARIO (MODERADOR / ADMIN)
+                        </h3>
+                        <div class="form-group">
+                            <label>Usuario / Correo de Acceso</label>
+                            <input type="text" class="form-control" id="modEmail" placeholder="Ej: mod_carlos">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre para Mostrar</label>
+                            <input type="text" class="form-control" id="modNombre" placeholder="Ej: Carlos (Moderador)">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" class="form-control" id="modPassword" placeholder="••••••••">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol y Permisos</label>
+                            <select class="form-control" id="modRol">
+                                <option value="moderador">🛡️ Moderador (Crear/Actualizar Torneos, Horarios, Resultados y Noticias)</option>
+                                <option value="admin">👑 Administrador (Acceso Total)</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="crearUsuarioModerador()">
+                            ➕ CREAR USUARIO
+                        </button>
+                    </div>
+
+                    <h3 style="color:var(--cyan-neon);font-family:'Orbitron';font-size:0.9rem;margin-bottom:15px;">
+                        USUARIOS REGISTRADOS
+                    </h3>
+                    <div id="adminModeradoresList"></div>
+                </div>
+
                 <!-- TAB: CONFIGURACIÓN -->
                 <div class="admin-tab" id="admin-config">
-                    <h2>⚙️ Configuración General</h2>
+                    <h2>⚙️ Configuración General del Sitio</h2>
                     <div class="card">
                         <div class="form-group">
                             <label>Nombre del Sitio</label>
                             <input type="text" class="form-control" id="configSiteName" value="CoreInvaders">
+                        </div>
+                        <div class="form-group">
+                            <label>Subtítulo del Hero</label>
+                            <input type="text" class="form-control" id="configSiteSubtitle" placeholder="⚔️ Mobile Legends Bang Bang ⚔️">
+                        </div>
+                        <div class="form-group">
+                            <label>Eslogan / Tagline del Hero</label>
+                            <input type="text" class="form-control" id="configHeroTagline" placeholder="「 Únete a la batalla. Domina el campo. Conquista la gloria. 」">
+                        </div>
+                        <div class="form-group">
+                            <label>URL del Logo / Emblema</label>
+                            <input type="text" class="form-control" id="configLogoURL" placeholder="https://i.postimg.cc/9QRV9PhQ/Emblema-futurista-Core-Invader.png">
                         </div>
                         <div class="form-group">
                             <label>URL del Banner Principal</label>
@@ -416,7 +481,11 @@
                             <label>Texto "Acerca de"</label>
                             <textarea class="form-control" id="configAcercaDe" rows="4"></textarea>
                         </div>
-                        <button type="button" class="btn btn-gold" onclick="guardarConfig()">💾 GUARDAR CAMBIOS</button>
+                        <div class="form-group">
+                            <label>Texto del Footer</label>
+                            <input type="text" class="form-control" id="configFooterText" placeholder="⚔️ Mobile Legends Bang Bang — Comunidad Gamer ⚔️">
+                        </div>
+                        <button type="button" class="btn btn-gold" onclick="guardarConfig()">💾 GUARDAR TODOS LOS CAMBIOS</button>
                     </div>
                 </div>
 
@@ -426,8 +495,8 @@
 
     <!-- ============ FOOTER ============ -->
     <footer class="footer">
-        <div class="footer-logo">COREINVADERS</div>
-        <p>⚔️ Mobile Legends Bang Bang — Comunidad Gamer ⚔️</p>
+        <div class="footer-logo" id="footerLogoText">COREINVADERS</div>
+        <p id="footerDescText">⚔️ Mobile Legends Bang Bang — Comunidad Gamer ⚔️</p>
         <p style="margin-top:5px;">© 2026 CoreInvaders. Todos los derechos reservados.</p>
         <div class="footer-links">
             <button type="button" class="footer-btn" onclick="showSection('inicio')">Inicio</button>
